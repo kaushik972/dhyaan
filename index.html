@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dhyaan - Focus Tree | Free Meditation Focus Timer</title>
+<meta name="description" content="Dhyaan is a free focus timer that grows a tree while you meditate or study, with calm background meditation music. Plant a tree, focus till it grows.">
+<!--
+  DHYAAN - Focus Tree
+  Copyright (c) 2026 Shivam Kaushik. All rights reserved.
+  Owner: Shivam Kaushik, Naha, Okinawa, Japan.
+  An original focus-timer app: plant a tree, focus, watch it grow.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#07130c; color:#e8f5e9; font-family:'Segoe UI', Arial, sans-serif; min-height:100vh; }
+  .wrap { max-width:860px; margin:0 auto; padding:28px 18px 60px; }
+  header { text-align:center; margin-bottom:8px; }
+  .logo { font-size:40px; font-weight:800; letter-spacing:3px; color:#7be495; }
+  .logo span { color:#ffcf6e; }
+  .tag { color:#a7c4ab; font-size:15px; margin-top:4px; }
+  .stage-box { background:linear-gradient(180deg,#0c2013,#081a0e); border:1px solid #1d3a24; border-radius:20px; padding:24px 16px 10px; margin-top:22px; text-align:center; }
+  svg.tree { width:300px; height:300px; }
+  .withered { filter:grayscale(1) sepia(.35); transform:rotate(2.5deg); transform-origin:bottom center; transition:all 1s; }
+  #stageLabel { font-size:19px; font-weight:700; color:#c9f2d2; margin-top:2px; }
+  #timeDisplay { font-size:52px; font-weight:800; letter-spacing:2px; color:#ffffff; margin:6px 0 2px; font-variant-numeric:tabular-nums; }
+  #statusMsg { color:#ffcf6e; min-height:22px; font-size:15px; }
+  .progress { height:10px; background:#12301b; border-radius:6px; margin:16px auto 4px; max-width:520px; overflow:hidden; }
+  #progressFill { height:100%; width:0%; background:linear-gradient(90deg,#2f9e44,#7be495); border-radius:6px; transition:width .3s; }
+  .chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:20px 0 6px; }
+  .chip { background:#0e2415; color:#c9f2d2; border:1px solid #2b5335; padding:10px 18px; border-radius:999px; font-size:15px; cursor:pointer; }
+  .chip.sel { background:#2f9e44; color:#fff; border-color:#2f9e44; font-weight:700; }
+  .chip:disabled { opacity:.4; cursor:default; }
+  .btns { display:flex; gap:12px; justify-content:center; margin-top:14px; }
+  button.main { background:#2f9e44; color:#fff; border:none; padding:14px 34px; font-size:17px; font-weight:700; border-radius:12px; cursor:pointer; }
+  button.main:hover { background:#37b24d; }
+  button.ghost { background:transparent; color:#ff9c9c; border:1px solid #6e2b2b; padding:14px 26px; font-size:16px; border-radius:12px; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  .hidden { display:none !important; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:26px; }
+  @media (max-width:640px){ .grid2{ grid-template-columns:1fr; } }
+  .card { background:#0a1d10; border:1px solid #1d3a24; border-radius:16px; padding:18px; }
+  .card h3 { color:#7be495; font-size:16px; letter-spacing:1px; margin-bottom:12px; }
+  .stats { display:flex; gap:10px; text-align:center; }
+  .stat { flex:1; background:#0e2415; border-radius:12px; padding:12px 4px; }
+  .stat b { display:block; font-size:24px; color:#fff; }
+  .stat span { font-size:12px; color:#a7c4ab; }
+  .week { display:flex; gap:8px; align-items:flex-end; margin-top:16px; height:86px; }
+  .wday { flex:1; text-align:center; }
+  .wbar-wrap { height:56px; display:flex; align-items:flex-end; justify-content:center; }
+  .wbar { width:22px; background:linear-gradient(180deg,#7be495,#2f9e44); border-radius:5px 5px 0 0; min-height:3px; }
+  .wday .wl { font-size:11px; color:#a7c4ab; margin-top:5px; }
+  .wday .wv { font-size:11px; color:#fff; font-weight:700; }
+  .wday.today .wl { color:#ffcf6e; font-weight:700; }
+  #gardenGrid { display:flex; flex-wrap:wrap; gap:8px; }
+  .gtree { width:52px; text-align:center; }
+  .gtree svg { width:40px; height:40px; }
+  .gtree div { font-size:10px; color:#a7c4ab; }
+  .empty { color:#5f7a63; font-size:14px; }
+  footer { text-align:center; color:#5f7a63; font-size:13px; margin-top:34px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">DHYAAN<span>.</span></div>
+    <div class="tag">Phone rakho, ped ugao, focus badhao. Plant a tree, focus till it grows.</div>
+  </header>
+
+  <div class="stage-box">
+    <svg class="tree" id="treeSvg" viewBox="0 0 300 300">
+      <!-- sky touches -->
+      <circle cx="248" cy="46" r="20" fill="#ffcf6e" opacity="0.9"/>
+      <ellipse cx="60" cy="52" rx="26" ry="9" fill="#d9f2e0" opacity="0.25"/>
+      <ellipse cx="90" cy="44" rx="18" ry="7" fill="#d9f2e0" opacity="0.2"/>
+      <!-- ground -->
+      <ellipse cx="150" cy="272" rx="120" ry="16" fill="#12301b"/>
+      <ellipse cx="150" cy="268" rx="80" ry="10" fill="#1a4225"/>
+      <!-- STAGE 0: seed -->
+      <g id="g0">
+        <ellipse cx="150" cy="262" rx="16" ry="6" fill="#5b4028"/>
+        <ellipse cx="150" cy="258" rx="7" ry="5" fill="#8a6238"/>
+      </g>
+      <!-- STAGE 1: sprout -->
+      <g id="g1" class="hidden">
+        <path d="M150 264 C150 248 150 240 150 232" stroke="#3e8e4f" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M150 244 C138 244 130 236 128 226 C140 226 148 234 150 244" fill="#51b06a"/>
+        <path d="M150 240 C162 240 170 232 172 222 C160 222 152 230 150 240" fill="#66c07c"/>
+      </g>
+      <!-- STAGE 2: sapling -->
+      <g id="g2" class="hidden">
+        <path d="M150 266 C148 230 148 205 150 178" stroke="#7a5230" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <circle cx="150" cy="160" r="26" fill="#2f9e44"/>
+        <circle cx="128" cy="176" r="18" fill="#37b24d"/>
+        <circle cx="172" cy="176" r="18" fill="#37b24d"/>
+      </g>
+      <!-- STAGE 3: young tree -->
+      <g id="g3" class="hidden">
+        <path d="M150 268 C147 215 147 175 150 128" stroke="#7a5230" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <path d="M150 190 C132 178 122 166 116 150" stroke="#7a5230" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M150 178 C168 166 178 154 184 138" stroke="#7a5230" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <circle cx="150" cy="106" r="38" fill="#2f9e44"/>
+        <circle cx="112" cy="132" r="26" fill="#37b24d"/>
+        <circle cx="188" cy="132" r="26" fill="#37b24d"/>
+        <circle cx="128" cy="92" r="22" fill="#40c057"/>
+        <circle cx="174" cy="92" r="22" fill="#40c057"/>
+      </g>
+      <!-- STAGE 4: full tree -->
+      <g id="g4" class="hidden">
+        <path d="M150 270 C146 205 146 155 150 100" stroke="#6e4a2a" stroke-width="16" fill="none" stroke-linecap="round"/>
+        <path d="M150 185 C128 170 114 154 106 132" stroke="#6e4a2a" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <path d="M150 168 C172 152 186 136 194 114" stroke="#6e4a2a" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <circle cx="150" cy="82" r="48" fill="#2f9e44"/>
+        <circle cx="102" cy="116" r="32" fill="#37b24d"/>
+        <circle cx="198" cy="116" r="32" fill="#37b24d"/>
+        <circle cx="120" cy="62" r="28" fill="#40c057"/>
+        <circle cx="182" cy="62" r="28" fill="#40c057"/>
+        <circle cx="150" cy="118" r="30" fill="#37b24d"/>
+        <circle cx="128" cy="86" r="6" fill="#ffcf6e"/>
+        <circle cx="168" cy="70" r="6" fill="#ffcf6e"/>
+        <circle cx="188" cy="104" r="6" fill="#ffcf6e"/>
+        <circle cx="112" cy="110" r="6" fill="#ffcf6e"/>
+      </g>
+      <!-- mini tree symbol for the garden -->
+      <defs>
+        <g id="miniTree">
+          <path d="M20 38 C19 28 19 22 20 14" stroke="#6e4a2a" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <circle cx="20" cy="10" r="9" fill="#2f9e44"/>
+          <circle cx="12" cy="16" r="6" fill="#37b24d"/>
+          <circle cx="28" cy="16" r="6" fill="#37b24d"/>
+        </g>
+      </defs>
+    </svg>
+    <div id="stageLabel">Seed ready hai</div>
+    <div id="timeDisplay">25:00</div>
+    <div id="statusMsg">Time chuno, phir Plant dabao. Focus ke beech me chhoda to ped sookh jayega.</div>
+    <div class="progress"><div id="progressFill"></div></div>
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip" data-min="1">1 min (demo)</button>
+    <button class="chip" data-min="10">10 min</button>
+    <button class="chip sel" data-min="25">25 min</button>
+    <button class="chip" data-min="50">50 min</button>
+    <button class="chip" data-min="90">90 min</button>
+  </div>
+
+  <div class="btns">
+    <button class="main" id="plantBtn">Plant the tree</button>
+    <button class="ghost hidden" id="giveUpBtn">Give up</button>
+    <button class="main hidden" id="againBtn">Plant another</button>
+    <button class="ghost" id="musicBtn" style="color:#7be495;border-color:#2b5335;">Music: ON</button>
+  </div>
+  <div id="musicMsg" style="text-align:center;color:#a7c4ab;font-size:13px;margin-top:8px;">Focus ke saath shaant meditation music bajega.</div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>YOUR PROGRESS</h3>
+      <div class="stats">
+        <div class="stat"><b id="stTrees">0</b><span>Trees grown</span></div>
+        <div class="stat"><b id="stMinutes">0</b><span>Focus minutes</span></div>
+        <div class="stat"><b id="stStreak">0</b><span>Day streak</span></div>
+        <div class="stat"><b id="stWithered">0</b><span>Withered</span></div>
+      </div>
+      <div class="week" id="weekStrip"></div>
+    </div>
+    <div class="card">
+      <h3>MY GARDEN</h3>
+      <div id="gardenGrid"><div class="empty">Abhi garden khaali hai. Pehla ped ugao!</div></div>
+    </div>
+  </div>
+
+  <footer>Dhyaan &copy; 2026 Shivam Kaushik. All rights reserved. Made in Naha, Japan.</footer>
+</div>
+
+<script>
+var selectedMin = 25;
+var timer = null;
+var endAt = 0;
+var totalMs = 0;
+var running = false;
+
+// --- Meditation music: one random calm track per focus session ---
+var musicTracks = [
+  { file: 'om-drone.mp3',  name: 'Om Drone (136 Hz)' },
+  { file: 'calm-pad.mp3',  name: 'Calm Pad' },
+  { file: 'deep-d.mp3',    name: 'Deep D Drone' }
+];
+var musicOn = true;
+var player = new Audio();
+player.loop = true;
+player.volume = 0.5;
+
+function startMusic(){
+  if (!musicOn) return;
+  var t = musicTracks[Math.floor(Math.random() * musicTracks.length)];
+  player.src = t.file;
+  player.currentTime = 0;
+  var p = player.play();
+  if (p && p.catch) p.catch(function(){});
+  $('musicMsg').textContent = 'Ab baj raha hai: ' + t.name + ' (meditation music)';
+}
+function stopMusic(){
+  player.pause();
+  player.currentTime = 0;
+  $('musicMsg').textContent = 'Focus ke saath shaant meditation music bajega.';
+}
+$('musicBtn').addEventListener('click', function(){
+  musicOn = !musicOn;
+  $('musicBtn').textContent = musicOn ? 'Music: ON' : 'Music: OFF';
+  if (!musicOn) { player.pause(); }
+  else if (running) { startMusic(); }
+});
+
+var stageNames = ['Seed ready hai', 'Ankda phoota - Sprout!', 'Chhota ped - Sapling', 'Jawan ped - Young tree', 'Poora ped - Full tree!'];
+var stageAt = [0, 0.10, 0.30, 0.55, 0.80];
+
+function $(id){ return document.getElementById(id); }
+
+function fmt(ms){
+  var s = Math.max(0, Math.ceil(ms/1000));
+  var m = Math.floor(s/60), r = s%60;
+  return (m<10?'0':'')+m+':'+(r<10?'0':'')+r;
+}
+
+function showStage(frac){
+  var idx = 0;
+  for (var i=0;i<stageAt.length;i++){ if (frac >= stageAt[i]) idx = i; }
+  for (var j=0;j<5;j++){ $('g'+j).classList.toggle('hidden', j!==idx); }
+  $('stageLabel').textContent = stageNames[idx];
+  return idx;
+}
+
+function loadData(){
+  try { return JSON.parse(localStorage.getItem('dhyaan_data') || '{"garden":[],"withered":0}'); }
+  catch(e){ return {garden:[], withered:0}; }
+}
+function saveData(d){ localStorage.setItem('dhyaan_data', JSON.stringify(d)); }
+
+function dayStr(offset){
+  var dt = new Date();
+  dt.setDate(dt.getDate() + offset);
+  return dt.toISOString().slice(0,10);
+}
+
+function renderStats(){
+  var d = loadData();
+  var mins = 0;
+  d.garden.forEach(function(t){ mins += t.m; });
+  $('stTrees').textContent = d.garden.length;
+  $('stMinutes').textContent = mins;
+  $('stWithered').textContent = d.withered;
+  // Per-day minutes + streak (from the dates already stored with each tree)
+  var byDay = {};
+  d.garden.forEach(function(t){ byDay[t.d] = (byDay[t.d] || 0) + t.m; });
+  var streak = 0;
+  var startOffset = byDay[dayStr(0)] ? 0 : -1; // today not done yet? streak can still run from yesterday
+  for (var o = startOffset; ; o--){
+    if (byDay[dayStr(o)]) streak++;
+    else break;
+  }
+  $('stStreak').textContent = streak;
+  // Last 7 days strip
+  var week = $('weekStrip');
+  week.innerHTML = '';
+  var maxM = 0;
+  for (var k = -6; k <= 0; k++){ maxM = Math.max(maxM, byDay[dayStr(k)] || 0); }
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (var k2 = -6; k2 <= 0; k2++){
+    var ds = dayStr(k2);
+    var mv = byDay[ds] || 0;
+    var h = maxM > 0 ? Math.max(3, Math.round(mv / maxM * 56)) : 3;
+    var dt2 = new Date(); dt2.setDate(dt2.getDate() + k2);
+    var div = document.createElement('div');
+    div.className = 'wday' + (k2 === 0 ? ' today' : '');
+    div.innerHTML = '<div class="wv">' + (mv || '') + '</div><div class="wbar-wrap"><div class="wbar" style="height:' + h + 'px"></div></div><div class="wl">' + dayNames[dt2.getDay()] + '</div>';
+    week.appendChild(div);
+  }
+  var grid = $('gardenGrid');
+  if (!d.garden.length){ grid.innerHTML = '<div class="empty">Abhi garden khaali hai. Pehla ped ugao!</div>'; return; }
+  grid.innerHTML = '';
+  d.garden.slice(-30).forEach(function(t){
+    var div = document.createElement('div');
+    div.className = 'gtree';
+    div.innerHTML = '<svg viewBox="0 0 40 40"><use href="#miniTree"></use></svg><div>'+t.m+' min</div>';
+    grid.appendChild(div);
+  });
+}
+
+function setChipsEnabled(on){
+  var chips = document.querySelectorAll('.chip');
+  chips.forEach(function(c){ c.disabled = !on; });
+}
+
+document.querySelectorAll('.chip').forEach(function(c){
+  c.addEventListener('click', function(){
+    if (running) return;
+    document.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('sel'); });
+    c.classList.add('sel');
+    selectedMin = parseInt(c.getAttribute('data-min'), 10);
+    $('timeDisplay').textContent = fmt(selectedMin*60*1000);
+    showStage(0);
+  });
+});
+
+function beep(){
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 660; g.gain.value = 0.08;
+    o.start(); o.stop(ctx.currentTime + 0.35);
+  } catch(e){}
+}
+
+function finish(success){
+  clearInterval(timer); timer = null; running = false;
+  stopMusic();
+  $('giveUpBtn').classList.add('hidden');
+  $('plantBtn').classList.add('hidden');
+  $('againBtn').classList.remove('hidden');
+  setChipsEnabled(true);
+  var d = loadData();
+  if (success){
+    showStage(1);
+    $('progressFill').style.width = '100%';
+    $('timeDisplay').textContent = '00:00';
+    $('statusMsg').textContent = 'Badhaai ho! Ped poora uga. +' + selectedMin + ' focus minutes garden me jud gaye.';
+    d.garden.push({ m: selectedMin, d: new Date().toISOString().slice(0,10) });
+    beep();
+  } else {
+    d.withered += 1;
+    $('treeSvg').classList.add('withered');
+    $('statusMsg').textContent = 'Ped sookh gaya. Koi baat nahi - haar nahi, ek aur try karo.';
+  }
+  saveData(d);
+  renderStats();
+}
+
+$('plantBtn').addEventListener('click', function(){
+  running = true;
+  $('treeSvg').classList.remove('withered');
+  $('plantBtn').classList.add('hidden');
+  $('againBtn').classList.add('hidden');
+  $('giveUpBtn').classList.remove('hidden');
+  setChipsEnabled(false);
+  $('statusMsg').textContent = 'Focus shuru. Ped badh raha hai... phone door rakho.';
+  startMusic();
+  totalMs = selectedMin * 60 * 1000;
+  endAt = Date.now() + totalMs;
+  showStage(0);
+  timer = setInterval(function(){
+    var rem = endAt - Date.now();
+    if (rem <= 0){ finish(true); return; }
+    $('timeDisplay').textContent = fmt(rem);
+    var frac = 1 - rem/totalMs;
+    $('progressFill').style.width = (frac*100).toFixed(1) + '%';
+    showStage(frac);
+  }, 250);
+});
+
+$('giveUpBtn').addEventListener('click', function(){ finish(false); });
+
+$('againBtn').addEventListener('click', function(){
+  $('treeSvg').classList.remove('withered');
+  $('againBtn').classList.add('hidden');
+  $('plantBtn').classList.remove('hidden');
+  $('progressFill').style.width = '0%';
+  $('timeDisplay').textContent = fmt(selectedMin*60*1000);
+  $('statusMsg').textContent = 'Time chuno, phir Plant dabao. Focus ke beech me chhoda to ped sookh jayega.';
+  showStage(0);
+});
+
+$('timeDisplay').textContent = fmt(selectedMin*60*1000);
+showStage(0);
+renderStats();
+</script>
+</body>
+</html>
